@@ -10,7 +10,7 @@ import {
   isExternalTableID,
   isSQL,
 } from "../../../integrations/utils"
-import { events, HTTPError } from "@budibase/backend-core"
+import { events, HTTPError, permissions, roles } from "@budibase/backend-core"
 import {
   BulkImportRequest,
   BulkImportResponse,
@@ -40,6 +40,7 @@ import {
   PROTECTED_INTERNAL_COLUMNS,
 } from "@budibase/shared-core"
 import { processTable } from "../../../sdk/app/tables/getters"
+import { PermissionUpdateType } from "../../../sdk/app/permissions"
 
 function pickApi({ tableId, table }: { tableId?: string; table?: Table }) {
   if (table && isExternalTable(table)) {
@@ -111,6 +112,22 @@ export async function save(ctx: UserCtx<SaveTableRequest, SaveTableResponse>) {
   const api = pickApi({ table })
   let savedTable = await api.save(ctx, renaming)
   if (!table._id) {
+    await sdk.permissions.updatePermissionOnRole(
+      {
+        roleId: roles.BUILTIN_ROLE_IDS.ADMIN,
+        resourceId: savedTable._id!,
+        level: permissions.PermissionLevel.READ,
+      },
+      PermissionUpdateType.ADD
+    )
+    await sdk.permissions.updatePermissionOnRole(
+      {
+        roleId: roles.BUILTIN_ROLE_IDS.ADMIN,
+        resourceId: savedTable._id!,
+        level: permissions.PermissionLevel.WRITE,
+      },
+      PermissionUpdateType.ADD
+    )
     savedTable = await sdk.tables.enrichViewSchemas(savedTable)
     await events.table.created(savedTable)
   } else {
