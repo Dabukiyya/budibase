@@ -128,6 +128,14 @@ export async function save(ctx: UserCtx<SaveTableRequest, SaveTableResponse>) {
       },
       PermissionUpdateType.ADD
     )
+    await sdk.permissions.updatePermissionOnRole(
+      {
+        roleId: roles.BUILTIN_ROLE_IDS.ADMIN,
+        resourceId: savedTable._id!,
+        level: permissions.PermissionLevel.EXECUTE,
+      },
+      PermissionUpdateType.ADD
+    )
     savedTable = await sdk.tables.enrichViewSchemas(savedTable)
     await events.table.created(savedTable)
   } else {
